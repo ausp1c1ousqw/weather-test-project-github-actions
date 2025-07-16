@@ -1,0 +1,40 @@
+name: Run WDIO tests from private repo
+
+on:
+  workflow_dispatch:
+  
+env:
+  RUN_CI_TESTS: 'true'
+  
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Clone repo with autotests
+        run: |
+           git clone https://x-access-token:${{ secrets.PRIVATE_REPO_TOKEN }}@github.com/ausp1c1ousqw/weather-test-project.git some-tests
+
+      - name: Install dependencies
+        working-directory: some-tests
+        run: npm ci
+
+      - name: Run tests
+        working-directory: some-tests
+        run: npm run test:headless
+        
+      - name: Generate Allure report
+        working-directory: some-tests
+        if: always()
+        run: npm run allure:generate
+
+      - name: Deploy Allure report to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: some-tests/allure-report
+
